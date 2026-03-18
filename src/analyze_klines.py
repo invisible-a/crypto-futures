@@ -69,8 +69,12 @@ def analyze_trend(df):
     else:
         return "NO TRADE"
 
+import sys
+
 if __name__ == "__main__":
-    symbol = "tonusdt"
+    # Use symbol from command line if provided, else default to 'tonusdt'
+    symbol = sys.argv[1] if len(sys.argv) > 1 else "tonusdt"
+    
     df = fetch_klines(symbol)
     if df is not None:
         df = calculate_indicators(df)
@@ -82,4 +86,4 @@ if __name__ == "__main__":
         print(f"RSI (14):   {last_rsi:.2f}")
         print(f"Decision:   {decision}")
     else:
-        print("Failed to retrieve data.")
+        print(f"Failed to retrieve data for {symbol.upper()}.")
