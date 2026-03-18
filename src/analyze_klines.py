@@ -49,25 +49,43 @@ def calculate_indicators(df):
 
 def analyze_trend(df):
     """
-    Apply trend-following strategy logic.
+    Apply trend-following strategy logic and calculate risk levels.
     """
     if df is None or len(df) < 200:
-        return "Insufficient data"
+        return {"decision": "Insufficient data"}
     
     last_row = df.iloc[-1]
-    prev_row = df.iloc[-2]
+    last_price = last_row['close']
     
     # Strategy logic
     is_bullish = (last_row['close'] > last_row['ema200']) and (last_row['ema20'] > last_row['ema50'])
     is_oversold = last_row['rsi'] < 30
     is_overbought = last_row['rsi'] > 70
     
+    decision = "NO TRADE"
+    entry = None
+    tp = None
+    sl = None
+    
     if is_bullish and not is_overbought:
-        return "LONG"
+        decision = "LONG"
+        entry = last_price
+        sl = entry * 0.98  # 2% Stop Loss
+        tp = entry * 1.05  # 5% Take Profit (1:2.5 Risk/Reward)
     elif not is_bullish and is_overbought:
-        return "SHORT"
-    else:
-        return "NO TRADE"
+        decision = "SHORT"
+        entry = last_price
+        sl = entry * 1.02  # 2% Stop Loss
+        tp = entry * 0.95  # 5% Take Profit
+        
+    return {
+        "decision": decision,
+        "entry": entry,
+        "tp": tp,
+        "sl": sl,
+        "rsi": last_row['rsi'],
+        "price": last_price
+    }
 
 import sys
 
@@ -78,12 +96,17 @@ if __name__ == "__main__":
     df = fetch_klines(symbol)
     if df is not None:
         df = calculate_indicators(df)
-        decision = analyze_trend(df)
-        last_price = df.iloc[-1]['close']
-        last_rsi = df.iloc[-1]['rsi']
+        result = analyze_trend(df)
+        
         print(f"--- Analysis for {symbol.upper()} ---")
-        print(f"Last Price: {last_price}")
-        print(f"RSI (14):   {last_rsi:.2f}")
-        print(f"Decision:   {decision}")
+        print(f"Last Price: {result['price']}")
+        print(f"RSI (14):   {result['rsi']:.2f}")
+        print(f"Decision:   {result['decision']}")
+        
+        if result['entry']:
+            print(f"\n--- Trade Setup ---")
+            print(f"Entry:      {result['entry']}")
+            print(f"Take Profit: {result['tp']:.4f}")
+            print(f"Stop Loss:   {result['sl']:.4f}")
     else:
         print(f"Failed to retrieve data for {symbol.upper()}.")
