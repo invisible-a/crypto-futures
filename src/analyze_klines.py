@@ -47,7 +47,7 @@ def calculate_indicators(df):
     df['rsi'] = 100 - (100 / (1 + rs))
     return df
 
-def analyze_trend(df):
+def analyze_trend(df, sl_pct=0.02, tp_pct=0.05):
     """
     Apply trend-following strategy logic and calculate risk levels.
     """
@@ -70,13 +70,13 @@ def analyze_trend(df):
     if is_bullish and not is_overbought:
         decision = "LONG"
         entry = last_price
-        sl = entry * 0.98  # 2% Stop Loss
-        tp = entry * 1.05  # 5% Take Profit (1:2.5 Risk/Reward)
+        sl = entry * (1 - sl_pct)
+        tp = entry * (1 + tp_pct)
     elif not is_bullish and is_overbought:
         decision = "SHORT"
         entry = last_price
-        sl = entry * 1.02  # 2% Stop Loss
-        tp = entry * 0.95  # 5% Take Profit
+        sl = entry * (1 + sl_pct)
+        tp = entry * (1 - tp_pct)
         
     return {
         "decision": decision,
@@ -90,13 +90,16 @@ def analyze_trend(df):
 import sys
 
 if __name__ == "__main__":
-    # Use symbol from command line if provided, else default to 'tonusdt'
+    # Command line arguments: symbol [sl_pct] [tp_pct]
+    # Example: python src/analyze_klines.py xrpusdt 0.03 0.06
     symbol = sys.argv[1] if len(sys.argv) > 1 else "tonusdt"
+    sl_val = float(sys.argv[2]) if len(sys.argv) > 2 else 0.02
+    tp_val = float(sys.argv[3]) if len(sys.argv) > 3 else 0.05
     
     df = fetch_klines(symbol)
     if df is not None:
         df = calculate_indicators(df)
-        result = analyze_trend(df)
+        result = analyze_trend(df, sl_pct=sl_val, tp_pct=tp_val)
         
         print(f"--- Analysis for {symbol.upper()} ---")
         print(f"Last Price: {result['price']}")
@@ -104,7 +107,7 @@ if __name__ == "__main__":
         print(f"Decision:   {result['decision']}")
         
         if result['entry']:
-            print(f"\n--- Trade Setup ---")
+            print(f"\n--- Trade Setup ({sl_val*100}% SL / {tp_val*100}% TP) ---")
             print(f"Entry:      {result['entry']}")
             print(f"Take Profit: {result['tp']:.4f}")
             print(f"Stop Loss:   {result['sl']:.4f}")
