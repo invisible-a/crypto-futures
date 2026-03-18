@@ -1,0 +1,15 @@
+# Data and cache
+data/
+*.log
+
+# Environment variables
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
